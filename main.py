@@ -1,58 +1,36 @@
 import socket
+from subdomains import sub_domains
 import os
 
-user = input("Enter domain name: ")
-subdomains = [
-    "www",
-    "mail",
-    "dev",
-    "api",
-    "test",
-    "staging",
-    "stage",
-    "beta",
-    "admin",
-    "portal",
-    "dashboard",
-    "secure",
-    "vpn",
-    "cpanel",
-    "webmail",
-    "support",
-    "help",
-    "shop",
-    "store",
-    "blog",
-    "static",
-    "cdn",
-    "img",
-    "files",
-    "assets",
-    "app",
-    "login",
-    "sso",
-    "internal",
-    "server"
-]
+user = input("Enter domain name(e.g. google.com): ")
 
+found = []
 
-for s in subdomains:
-    domain = f"{s}.{user}.com"
+for s in sub_domains:
+    domain = f"{s}.{user}"
     try:
         ip = socket.gethostbyname(domain)
         print(f"=============================")
-        print(f"[+] Trying to connect to {ip}")
-        print(f"Connected to {domain}")
+        print(f"[+] FOUND: {domain} → {ip}")
+        found.append((domain, ip))
         print(f"=============================")
     except:
-        print(f"couldn't connect to {domain}")
+        pass
 
-saving = input("Do you want to save the results ? (yes/no)")
-if saving.lower() == "no":
-    print("Goodbye")
-    exit()
+
+if found:
+    saving = input("Do you want to save the results ? (yes/no)")
+    if saving.lower() == "yes":
+        pick_a_name = input("Enter the file name you want to save the results: ")
+
+        with open(pick_a_name, mode="w", encoding="utf-8") as file:
+            file.write(f"Subdomain scan results for {user}\n")
+            file.write("="*50 + "\n\n")
+            for domain, ip in found:
+                file.write(f"{domain} --> {ip} \n")
+            file.write(f"Total findings: {len(found)} \n")
+        print(f"Results saved in {pick_a_name}")
+    else:
+        print("No results saved")
 else:
-    try:
-        file_name = input("Enter file name: ")
-        with open(file_name, mode="w", encoding="utf-8") as file:
-
+    print("No subdomains found to save")
