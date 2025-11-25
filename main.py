@@ -1,8 +1,18 @@
 import socket
+import concurrent.futures #self note, concurrent scanning
 import argparse
 from subdomains import sub_domains
 from datetime import datetime
 import os
+
+def check_single_domain(subdomain, domain_name):
+    target = f"{subdomain}.{domain_name}"
+    try:
+        ip_address = socket.gethostbyname(target)
+        return (target, ip_address)
+    except socket.gaierror:
+        return None
+
 def main():
     parser = argparse.ArgumentParser(description='Subdomain Scanner',
                                      epilog='python main.py -d example.com'
@@ -11,21 +21,21 @@ def main():
     parser.add_argument('-o', '--output', help='Output file name')
     args = parser.parse_args()
 
-    print(f'Running subdomain scan on {args.domain}..........')
-
     found = []
 
-    for sub in sub_domains:
-        target = f"{sub}.{args.domain}"
-        try:
-            ip = socket.gethostbyname(target)
-            print(f"=============================")
-            print(f"[+] FOUND: {target} → {ip}")
-            found.append((target, ip))
-            print(f"=============================")
-        except socket.gaierror:
-            print("No DNS records")
-            pass
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+        future_to_subdomain = {}
+        for sub in sub_domains:
+            future = executor.submit(check_single_domain, sub, args.domain)
+            future_to_subdomain[future] = sub
+
+        for future in concurrent.futures.as_completed(future_to_subdomain):
+            result = future.result()
+
+            if result is not None:
+                domain, ip = result
+                print(f"FOUND {domain} ----> {ip}")
+                found.append((domain, ip))
 
     if found:
         if args.output:
